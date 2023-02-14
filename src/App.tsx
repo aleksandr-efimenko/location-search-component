@@ -3,30 +3,37 @@ import { nanoid } from 'nanoid'
 import './App.css'
 import data from '../node_modules/all-countries-and-cities-json/countries.min.json';
 
-const useLocalStorageValue = <T,>(key: string, initialValue: T) => {
-  const [value, setValue] = useState<T>(JSON.parse(localStorage.getItem(key) ?? '') || initialValue);
-
-  const setWithPersist = (value: T) => {
-    setValue(value)
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-
-  return [value, setWithPersist]
+type CitiesWithCountry = {
+  city: string
+  country: string,
 }
 
 function App() {
   const [searchText, setSearchText] = useState('');
-  const countries = Object.keys(data);
-  console.log(Object.values(data))
-  // const citiesWithCountry = Object.keys(data).map(key => data[key]).flat();
-  const searchResults = useMemo(() => Object.entries(data)
-        .filter(([el, cities]) => [el, ...cities].map((entry) => entry.toLowerCase()).includes(searchText.toLowerCase())), [searchText])
+  const citiesWithCountry: CitiesWithCountry[] = Object.entries(data).map(([country, cities]) =>
+    cities.map(city => {
+      return {
+        country: country,
+        city: city
+      }
+    })
+  ).flat();
+
+  const searchResults: CitiesWithCountry[] = useMemo(() => {
+    if (!searchText)
+      return [] as CitiesWithCountry[];
+
+    const cities = citiesWithCountry.filter((el) =>
+      el.city.toLowerCase().includes(searchText.toLowerCase())
+    ).slice(0, 10);
+    //Filter duplicates
+    return cities.filter((tag,index, array) => array.findIndex(t=> t.city === tag.city && t.country === tag.country) === index)
+  }, [searchText])
 
   const handleSeach = (e: ChangeEvent<HTMLInputElement>) => {
-    // console.log(countries);
+    // if (e.target.value)
     setSearchText(e.target.value);
   }
-
 
   return (
     <div className="App">
@@ -36,9 +43,9 @@ function App() {
       <div>
         <ul>
           {
-            searchResults.map(([country, cities]) => {
-              return <li key={nanoid()}>{country} {cities.join(' ')}</li>
-            }).sort()
+            searchResults.map((el) => {
+              return <li key={nanoid()}>{el.country}, {el.city}</li>
+            })
           }
         </ul>
       </div>
